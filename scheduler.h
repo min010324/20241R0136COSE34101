@@ -12,5 +12,6 @@ void schedulePRSJF(ProcessPtr process_ptr, int size);
 void schedulePRIORITY(ProcessPtr process_ptr, int size);
 void schedulePRPRIORITY(ProcessPtr process_ptr, int size);
 void scheduleRR(ProcessPtr process_ptr, int size, int time_quantum);
+void scheduleMultiLevel(ProcessPtr process_ptr, int size, int time_quantum);
 
 #endif //INC_20241R0136COSE4101_SCHEDULER_H

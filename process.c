@@ -8,7 +8,7 @@ ProcessPtr createProcess(int size){
         process_prt[i].pid = i;
         process_prt[i].priority = rand() % 20 +1;
         process_prt[i].arrival_time = rand() % 20;
-        process_prt[i].arrival_time = 0; // test for non-*
+//        process_prt[i].arrival_time = 0; // test for non-*
 //        process_prt[i].arrival_time = i; // test for preempt-*
         process_prt[i].cpu_burst_time = rand() % 20 +1;
         process_prt[i].cpu_burst_remain_time = process_prt[i].cpu_burst_time;

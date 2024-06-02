@@ -25,8 +25,10 @@ void selectScheduler(ProcessPtr process_ptr, int size){
     printf("### 4 : Non-Preemptive Priority\n");
     printf("### 5 : Preemptive Priority\n");
     printf("### 6 : RR\n");
+    printf("### 7 : MultiLevel Queue\n");
 
     int scheduler_type = 0;
+    int time_quantum = 0;
     while(1){
         printf("\nselect scheduler : ");
         scanf("%d", &scheduler_type);
@@ -47,13 +49,17 @@ void selectScheduler(ProcessPtr process_ptr, int size){
                 schedulePRPRIORITY(process_ptr, size);
                 break;
             case 6:
-                int time_quantum = 0;
                 printf("Enter the time quantum : ");
                 scanf("%d", &time_quantum);
                 scheduleRR(process_ptr, size, time_quantum);
                 break;
+            case 7:
+                printf("Enter the time quantum : ");
+                scanf("%d", &time_quantum);
+                scheduleMultiLevel(process_ptr, size, time_quantum);
+                break;
             default:
-                printf("Invalid input. Please select a scheduler between 1 and 6: ");
+                printf("Invalid input. Please select a scheduler between 1 and 7: ");
         }
         resetProcess(process_ptr, size);
     }
