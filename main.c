@@ -18,18 +18,19 @@ int main(void) {
 }
 
 void selectScheduler(ProcessPtr process_ptr, int size){
-    printf("Scheduler List\n\n");
-    printf("### 1 : FCFS\n");
-    printf("### 2 : Non-Preemptive SJF\n");
-    printf("### 3 : Preemptive SJF\n");
-    printf("### 4 : Non-Preemptive Priority\n");
-    printf("### 5 : Preemptive Priority\n");
-    printf("### 6 : RR\n");
-    printf("### 7 : MultiLevel Queue\n");
-
     int scheduler_type = 0;
     int time_quantum = 0;
+    int queue_number = 1;
     while(1){
+        printf("Scheduler List\n\n");
+        printf("### 1 : FCFS\n");
+        printf("### 2 : Non-Preemptive SJF\n");
+        printf("### 3 : Preemptive SJF\n");
+        printf("### 4 : Non-Preemptive Priority\n");
+        printf("### 5 : Preemptive Priority\n");
+        printf("### 6 : RR\n");
+        printf("### 7 : MultiLevel Queue\n");
+        printf("### 8 : MultiLevel-FeedBack Queue\n");
         printf("\nselect scheduler : ");
         scanf("%d", &scheduler_type);
         switch (scheduler_type) {
@@ -57,6 +58,11 @@ void selectScheduler(ProcessPtr process_ptr, int size){
                 printf("Enter the time quantum : ");
                 scanf("%d", &time_quantum);
                 scheduleMultiLevel(process_ptr, size, time_quantum);
+                break;
+            case 8:
+                printf("Enter the Queue Number : ");
+                scanf("%d", &queue_number);
+                scheduleMultiLevelFeedBack(process_ptr, size, queue_number);
                 break;
             default:
                 printf("Invalid input. Please select a scheduler between 1 and 7: ");

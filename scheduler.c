@@ -832,7 +832,7 @@ void scheduleMultiLevel(ProcessPtr process_ptr, int size, int time_quantum){
     }
 
     sortQueue(job_queue, compareArrivalTime); // 도착순으로 정렬
-    printf("### FCFS init Job Queue\n");
+    printf("### Multilevel init Job Queue\n");
     printQueue(job_queue);
 
     printf("\n### Gantt Chart ###\n");
@@ -953,5 +953,156 @@ void scheduleMultiLevel(ProcessPtr process_ptr, int size, int time_quantum){
     deleteQueue(job_queue);
     deleteQueue(ready_queue_foreground);
     deleteQueue(ready_queue_background);
+    deleteQueue(waiting_queue);
+}
+
+
+void scheduleMultiLevelFeedBack(ProcessPtr process_ptr, int size, int queue_number){
+    Queue* job_queue = createQueue();
+    Queue** ready_queue_list = (Queue **) malloc(sizeof(Queue*) * queue_number);
+    Queue* waiting_queue = createQueue();
+    Queue* target_queue;
+    for(int i =0; i< queue_number; i++){
+        (ready_queue_list)[i] = createQueue();
+    }
+
+    int current_queue = 0;
+    int running_quantum = 0;
+    int total_ready_cnt = 0;
+    int current_time = 0;
+    ProcessPtr running_process = NULL;
+    bool idle_status = false;
+
+    for(int i=0; i<size; i++){
+        process_ptr[i].io_burst_remain_time = 0; // ignore IO
+        enqueue(job_queue,&process_ptr[i]);
+    }
+
+    sortQueue(job_queue, compareArrivalTime); // 도착순으로 정렬
+    printf("### Multilevel Feedback init Job Queue\n");
+    printQueue(job_queue);
+
+    printf("\n### Gantt Chart ###\n");
+    while (!(job_queue->count == 0 && total_ready_cnt == 0 && waiting_queue->count == 0 && running_process == NULL)){ //scheduler 시작
+        int time_quantum = (current_queue + 1) * 4;
+
+        Node *current_job_node = job_queue->front;
+        while (current_job_node != NULL){ // job queue -> ready queue
+            if(current_job_node->dataPtr->arrival_time != current_time) {
+                break;
+            }
+
+            ProcessPtr deletedData;
+            dequeue(job_queue, (void **)&deletedData);
+            enqueue((ready_queue_list)[0], deletedData);
+            current_job_node = current_job_node->next;
+        }
+        if(current_time == 0){
+            for(int i =0; i< queue_number; i++){
+                printf("\nReady Queue Index : %d\n", i);
+                printQueue((ready_queue_list)[i]);
+            }
+            printf("\n\n");
+        }
+
+
+//        processIOWorking(waiting_queue); // 기존에 끝난 waiting queue의 작업을 이동시킨 뒤 IO operation 수행
+
+        if(waiting_queue->count > 0){ // waiting queue -> ready queue
+            sortQueue(waiting_queue, compareRemainIOBurst);
+            Node *current_waiting_node = waiting_queue->front;
+            while (current_waiting_node != NULL){
+                if(current_waiting_node->dataPtr->io_burst_remain_time <= 0){ // IO 종료
+                    ProcessPtr current_waiting;
+                    running_quantum = 0;
+                    dequeue(waiting_queue, (void **)&current_waiting);
+
+                    if (current_waiting->cpu_burst_remain_time > 0){ // 아직 끝나지 않은 process인 경우에만 ready queue로 이동
+                        enqueue((ready_queue_list)[current_queue+1], current_waiting);
+//                        enqueue(ready_queue, current_waiting);
+                    }
+                }
+                current_waiting_node = current_waiting_node->next;
+            }
+        }
+
+        if(running_process == NULL){ //CPU 사용 가능
+            target_queue = (ready_queue_list)[current_queue];
+            if(target_queue->count){ // ready queue에서 running으로 process 이동
+                if(idle_status){ // 기존에 CPU가 IDLE 상태였는지 확인
+                    idle_status = false;
+                    printf("%d ]\n", current_time);
+                }
+                running_quantum = 0;
+                dequeue(target_queue, (void**)&running_process);
+                if((ready_queue_list)[current_queue]->count == 0) current_queue++;
+//                if(target_queue == ready_queue_foreground) running_quantum = 0;
+                printf("<PID : %d> Process running [ %d ~ ", running_process->pid, current_time);
+
+            } else{ // ready queue 비어있는 idle 상황
+                if(!idle_status){
+                    idle_status = true;
+                    printf("### <IDLE> time : [ %d ~ ", current_time);
+                }
+            }
+        } else {
+            if(running_process->cpu_burst_remain_time <= 0){ //남은 cpu burst 없음
+                if(running_process->io_burst_remain_time <= 0){ // 남은 IO 없음
+                    printf("%d ]\n", current_time); // running process 완료 처리
+                } else { // IO interrupt 발생
+                    printf("%d ] IO interrupt : %d, Actually Finish : %d\n", current_time, running_process->io_burst_remain_time, current_time + running_process->io_burst_remain_time); // running process 완료 처리
+//                    printf("%d ] IO interrupt : %d, Actually Finish \n", current_time, running_process->io_burst_remain_time); // running process 완료 처리
+                    enqueue(waiting_queue, running_process);
+                }
+
+                running_process->turnaround_time = current_time - running_process->arrival_time + running_process->io_burst_remain_time;
+                running_process = NULL;
+
+                target_queue = (ready_queue_list)[current_queue];
+                if(target_queue->count){ // ready queue -> running
+                    running_quantum = 0;
+                    dequeue(target_queue, (void **)&running_process);
+                    if((ready_queue_list)[current_queue]->count == 0) current_queue++;
+                    printf("<PID : %d> Process running [ %d ~ ", running_process->pid, current_time);
+                } else { // ready queue is empty! IDLE
+                    idle_status = true;
+                    printf("### <IDLE> time : [ %d ~ ", current_time);
+                }
+            } else{ // running process 동작
+                if(running_quantum == time_quantum && current_queue != (queue_number -1)){
+                    printf("%d ] preempted\n", current_time); // running process 완료 처리
+                    enqueue((ready_queue_list)[current_queue+1], running_process);
+
+                    target_queue = (ready_queue_list)[current_queue];
+                    dequeue(target_queue, (void **)&running_process);
+                    if((ready_queue_list)[current_queue]->count == 0) current_queue++;
+                    running_quantum = 0;
+                    printf("<PID : %d> Process running [ %d ~ ", running_process->pid, current_time);
+                }
+            }
+        }
+
+        if(running_process){
+            (running_process->cpu_burst_remain_time)--; //동작중인 process 처리
+            running_quantum++;
+        }
+
+        for(int i =0; i< queue_number; i++){
+            processWaitingTime((ready_queue_list)[i]); // ready queue에 있는 process의 waiting time 증가
+        }
+        current_time++;
+
+        total_ready_cnt = 0;
+        for(int i =0; i< queue_number; i++){
+            total_ready_cnt += (ready_queue_list)[i]->count;
+        }
+    }
+
+    printf("]\n");
+    schedulerEval(process_ptr, size);
+    deleteQueue(job_queue);
+    for(int i =0; i< queue_number; i++){
+        deleteQueue((ready_queue_list)[i]);
+    }
     deleteQueue(waiting_queue);
 }
