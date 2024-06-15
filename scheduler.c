@@ -979,7 +979,7 @@ void scheduleMultiLevelFeedBack(ProcessPtr process_ptr, int size, int queue_numb
     }
 
     sortQueue(job_queue, compareArrivalTime); // 도착순으로 정렬
-    printf("### Multilevel Feedback init Job Queue\n");
+    printf("### MultiLevel Feedback init Job Queue\n");
     printQueue(job_queue);
 
     printf("\n### Gantt Chart ###\n");
@@ -1059,7 +1059,7 @@ void scheduleMultiLevelFeedBack(ProcessPtr process_ptr, int size, int queue_numb
                 running_process = NULL;
 
                 target_queue = (ready_queue_list)[current_queue];
-                if(target_queue->count){ // ready queue -> running
+                if(target_queue != NULL && target_queue->count){ // ready queue -> running
                     running_quantum = 0;
                     dequeue(target_queue, (void **)&running_process);
                     if((ready_queue_list)[current_queue]->count == 0) current_queue++;
@@ -1105,4 +1105,5 @@ void scheduleMultiLevelFeedBack(ProcessPtr process_ptr, int size, int queue_numb
         deleteQueue((ready_queue_list)[i]);
     }
     deleteQueue(waiting_queue);
+    free(ready_queue_list);
 }
